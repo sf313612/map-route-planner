@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
 
 const favoriteRouteSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    routeName: String,
-    startPoint: String,
-    endPoint: String
+    userId: { type: String, required: true },
+    routeName: { type: String, required: true },
+    startPoint: { type: String, required: true },
+    endPoint: { type: String, required: true }
 });
 
 export default mongoose.model("FavoriteRoute", favoriteRouteSchema);

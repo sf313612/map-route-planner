@@ -1,9 +1,9 @@
 import mongoose from "mongoose";
 
 const savedRouteSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    route: [String],
-    totalDistance: Number
+    userId: { type: String, required: true },
+    route: [{type: String, required: true }],
+    totalDistance: {type: Number, required: true } //shoud it be String?
 });
 
 export default mongoose.model("SavedRoute", savedRouteSchema);
