@@ -9,7 +9,7 @@ export async function issueToken(_req: Request, res: Response): Promise<void> {
     const id = uuidv4();
     const username = `user_${id.slice(0, 8)}`;
     const email = `user_${id}@token.local`;
-    const user = new User({ username, email });
+    const user = new User({ username, email, password: "token-only-not-for-login" });
     const saved = await user.save();
     const token = jwt.sign(
       { userId: saved._id.toString() },
