@@ -8,6 +8,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "worker:transcription": "ts-node src/workers/transcriptionWorker.ts",
+    "test:route-search": "powershell -ExecutionPolicy Bypass -File .\\scripts\\route-search-full-test.ps1",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
