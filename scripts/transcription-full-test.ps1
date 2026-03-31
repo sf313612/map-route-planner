@@ -1,11 +1,5 @@
 # Single PowerShell integration test for transcription jobs (replaces older smoke/body-json helpers).
 # Full flow: POST -> GET (poll) -> idempotent POST -> RabbitMQ Management API check
-# Run from repo root:
-#   powershell -ExecutionPolicy Bypass -File .\scripts\transcription-full-test.ps1
-# Optional env: API_BASE, RABBITMQ_MGMT_URL, RABBITMQ_MGMT_USER, RABBITMQ_MGMT_PASS,
-#   RABBITMQ_QUEUE, RABBITMQ_EXCHANGE
-# Keep API (npm run dev) and worker (npm run worker:transcription) running.
-
 $ErrorActionPreference = "Stop"
 
 $base = if ($env:API_BASE) { $env:API_BASE.TrimEnd("/") } else { "http://localhost:5000" }
