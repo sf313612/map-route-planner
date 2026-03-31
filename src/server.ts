@@ -21,6 +21,7 @@ import {
   startRouteSearchEventsConsumer,
 } from "./messaging/routeSearchMessaging";
 import { handleRouteSearchEvent } from "./services/routeSearchEventHandler";
+import { startResultConsumer } from "./messaging/resultConsumer";
 
 dotenv.config();
 
@@ -55,6 +56,8 @@ async function bootstrap(): Promise<void> {
 
   server = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+
+    startResultConsumer();
   });
 }
 

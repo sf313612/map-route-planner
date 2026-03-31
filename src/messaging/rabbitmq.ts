@@ -14,6 +14,13 @@ export interface TranscriptionRequestPayload {
 let connection: ChannelModel | null = null;
 let channel: Channel | null = null;
 
+export function getChannel(): Channel {
+  if (!channel) {
+    throw new Error("RabbitMQ not initialized");
+  }
+  return channel;
+}
+
 function getUrl(): string {
   const url = process.env.RABBITMQ_URL;
   if (!url) {
