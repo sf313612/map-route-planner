@@ -7,6 +7,7 @@ import TranscriptionJob from "../models/TranscriptionJob";
 import { createConsumerConnection } from "../messaging/rabbitmq";
 import type { TranscriptionRequestPayload } from "../messaging/rabbitmq";
 import { getQueueName } from "../messaging/transcriptionQueue";
+import { putTranscriptionResult } from "../storage/s3Storage";
 
 let rabbitConnection: ChannelModel | null = null;
 let rabbitChannel: Channel | null = null;
@@ -41,12 +42,40 @@ async function processJob(payload: TranscriptionRequestPayload): Promise<void> {
     return;
   }
 
-  await TranscriptionJob.findByIdAndUpdate(payload.jobId, { status: "PROCESSING" });
-  await new Promise<void>((resolve) => setTimeout(resolve, STUB_DELAY_MS));
   await TranscriptionJob.findByIdAndUpdate(payload.jobId, {
-    status: "DONE",
-    resultStatus: "READY",
+    status: "PROCESSING",
+    errorMessage: null,
   });
+  try {
+    await new Promise<void>((resolve) => setTimeout(resolve, STUB_DELAY_MS));
+
+    const resultPayload = {
+      jobId: payload.jobId,
+      userId: payload.userId,
+      sourceText: payload.sourceText,
+      transcription: payload.sourceText.toUpperCase(),
+      generatedAt: new Date().toISOString(),
+    };
+    const s3Key = `transcription-results/${payload.userId}/${payload.jobId}.json`;
+    const uploaded = await putTranscriptionResult(s3Key, JSON.stringify(resultPayload));
+
+    await TranscriptionJob.findByIdAndUpdate(payload.jobId, {
+      status: "DONE",
+      resultStatus: "READY",
+      s3Key: uploaded.key,
+      contentType: uploaded.contentType,
+      size: uploaded.size,
+      errorMessage: null,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown transcription worker error";
+    await TranscriptionJob.findByIdAndUpdate(payload.jobId, {
+      status: "FAILED",
+      resultStatus: "FAILED",
+      errorMessage: message,
+    });
+    throw error;
+  }
 }
 
 async function main(): Promise<void> {

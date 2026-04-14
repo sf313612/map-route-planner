@@ -4,6 +4,7 @@ import { requireAuth } from "../middleware/auth";
 import { getParamId } from "../utils/params";
 import TranscriptionJob from "../models/TranscriptionJob";
 import { createOrGetQueuedJob } from "../services/transcriptionJobService";
+import { getTranscriptionResult } from "../storage/s3Storage";
 
 const router = express.Router();
 router.use(requireAuth);
@@ -71,52 +72,6 @@ router.get("/jobs/:id", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/jobs/:id/result", async (req: Request, res: Response) => {
-  const id = getParamId(req);
-  if (!id) {
-    return res.status(400).json({ error: "Invalid id" });
-  }
-
-  const { s3Key, contentType, size } = req.body;
-
-  if (typeof s3Key !== "string" || !s3Key.trim()) {
-  return res.status(400).json({ error: "s3Key is required" });
-  }
-
-  if (typeof contentType !== "string" || !contentType.trim()) {
-    return res.status(400).json({ error: "contentType is required" });
-  }
-
-  if (typeof size !== "number" || size < 0) {
-    return res.status(400).json({ error: "size must be a non-negative number" });
-  }
-
-  try {
-    const job = await TranscriptionJob.findOne({
-      _id: id,
-      userId: req.userId,
-    });
-
-    if (!job) {
-      return res.status(404).json({ error: "Job not found" });
-    }
-
-    // only metadata update
-    job.s3Key = s3Key;
-    job.contentType = contentType;
-    job.size = size;
-    job.resultStatus = "READY";
-    job.status = "DONE";
-
-    await job.save();
-
-    return res.json({ message: "Result metadata saved" });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Failed to save result metadata" });
-  }
-});
-
 router.get("/jobs/:id/result", async (req: Request, res: Response) => {
   const id = getParamId(req);
   if (!id) {
@@ -138,13 +93,10 @@ router.get("/jobs/:id/result", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Result not ready" });
     }
 
-    return res.json({
-      data: {
-        s3Key: job.s3Key,
-        contentType: job.contentType,
-        size: job.size,
-      },
-    });
+    const storageResult = await getTranscriptionResult(job.s3Key);
+    res.setHeader("Content-Type", storageResult.contentType);
+    res.setHeader("Content-Length", storageResult.body.byteLength.toString());
+    return res.status(200).send(storageResult.body);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Failed to get result" });

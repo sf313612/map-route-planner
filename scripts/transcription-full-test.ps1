@@ -1,5 +1,5 @@
-# Single PowerShell integration test for transcription jobs (replaces older smoke/body-json helpers).
-# Full flow: POST -> GET (poll) -> idempotent POST -> RabbitMQ Management API check
+# Single PowerShell integration test for transcription + object storage flow.
+# Full flow: POST -> GET (poll metadata) -> GET result body from backend(S3) -> idempotent POST -> RabbitMQ check
 $ErrorActionPreference = "Stop"
 
 $base = if ($env:API_BASE) { $env:API_BASE.TrimEnd("/") } else { "http://localhost:5000" }
@@ -67,14 +67,14 @@ if ($code1 -ne 202) { Write-Host "Note: expected 202 on first create (200 if thi
 Write-Host "jobId=$jobId status=$($job1.data.status)"
 
 Write-Host ""
-Write-Host "=== Step 3 - GET job (poll until DONE or timeout) ===" -ForegroundColor Cyan
+Write-Host "=== Step 3 - GET job (poll metadata until READY or timeout) ===" -ForegroundColor Cyan
 $getHeaders = @{ Authorization = "Bearer $token" }
 $deadline = (Get-Date).AddSeconds(45)
 $last = $null
 do {
   $one = Invoke-RestMethod -Method Get -Uri "$base/api/transcription/jobs/$jobId" -Headers $getHeaders
   $last = $one.data
-  Write-Host "status=$($last.status) resultText=$($last.resultText)"
+  Write-Host "status=$($last.status) resultStatus=$($last.resultStatus) s3Key=$($last.s3Key)"
   if ($last.status -eq "DONE" -or $last.status -eq "FAILED") { break }
   Start-Sleep -Milliseconds 400
 } while ((Get-Date) -lt $deadline)
@@ -82,9 +82,35 @@ do {
 if ($last.status -eq "QUEUED") {
   Write-Host "Hint: still QUEUED - run worker: npm run worker:transcription" -ForegroundColor DarkYellow
 }
+if ($last.status -eq "FAILED") {
+  throw "Worker failed job: $($last.errorMessage)"
+}
+if ($last.resultStatus -ne "READY") {
+  throw "Expected resultStatus=READY, got '$($last.resultStatus)'"
+}
+if (-not $last.s3Key) {
+  throw "Expected s3Key in metadata, got empty value."
+}
+Write-Host "OK: metadata contains s3Key=$($last.s3Key)"
 
 Write-Host ""
-Write-Host "=== Step 4 - Second POST (idempotency, expect HTTP 200) ===" -ForegroundColor Cyan
+Write-Host "=== Step 4 - GET result (backend reads object from S3/MinIO) ===" -ForegroundColor Cyan
+$resultResp = Invoke-WebRequest -Method Get -Uri "$base/api/transcription/jobs/$jobId/result" -Headers $getHeaders -UseBasicParsing
+$resultCode = [int]$resultResp.StatusCode
+if ($resultCode -ne 200) { throw "Expected HTTP 200 from result endpoint, got $resultCode" }
+$resultRaw = $resultResp.Content
+$resultJson = $resultRaw | ConvertFrom-Json
+if (-not $resultJson.transcription) {
+  throw "Result payload has no 'transcription' field"
+}
+$expectedTranscription = $sourceText.ToUpperInvariant()
+if ("$($resultJson.transcription)" -ne "$expectedTranscription") {
+  throw "Unexpected transcription value. expected='$expectedTranscription', got='$($resultJson.transcription)'"
+}
+Write-Host "OK: backend returned S3 object body, transcription='$($resultJson.transcription)'"
+
+Write-Host ""
+Write-Host "=== Step 5 - Second POST (idempotency, expect HTTP 200) ===" -ForegroundColor Cyan
 $resp2 = Invoke-WebRequest -Method Post -Uri "$base/api/transcription/jobs" -Headers $postHeaders -ContentType "application/json; charset=utf-8" -Body $bodyJson -UseBasicParsing
 $code2 = [int]$resp2.StatusCode
 $job2 = $resp2.Content | ConvertFrom-Json
@@ -99,4 +125,5 @@ $auth = Get-RabbitMqAuthHeader
 Test-RabbitMqStep -AuthHeader $auth
 
 Write-Host ""
-Write-Host "Done. RabbitMQ UI: ${mgmtBase} (Queues -> ${queueName}; Exchanges -> ${exchangeName} -> Bindings)." -ForegroundColor Green
+Write-Host "Done. Object Storage flow verified: DB metadata + result body via backend(S3)." -ForegroundColor Green
+Write-Host "RabbitMQ UI: ${mgmtBase} (Queues -> ${queueName}; Exchanges -> ${exchangeName} -> Bindings)." -ForegroundColor Green

@@ -8,6 +8,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "worker:transcription": "ts-node src/workers/transcriptionWorker.ts",
+    "test:transcription": "powershell -ExecutionPolicy Bypass -File .\\scripts\\transcription-full-test.ps1",
     "test:route-search": "powershell -ExecutionPolicy Bypass -File .\\scripts\\route-search-full-test.ps1",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -16,6 +17,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1030.0",
     "amqplib": "^1.0.2",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
