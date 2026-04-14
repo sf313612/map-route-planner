@@ -1,3 +1,4 @@
+//
 import amqp, { type Channel, type ChannelModel, type ConsumeMessage } from "amqplib";
 import {
   assertRouteSearchTopology,
@@ -61,6 +62,7 @@ export async function connectRouteSearchPublisher(): Promise<void> {
   publisherChannel = ch;
 }
 
+// backend -> RabbitMQ
 export async function publishRouteSearchRequested(
   payload: RouteSearchRequestedPayload
 ): Promise<void> {
@@ -88,6 +90,7 @@ function parseEvent(msg: ConsumeMessage): RouteSearchEventMessage {
   throw new Error(`Unsupported route-search event: ${key}`);
 }
 
+// backend -> Python
 export async function startRouteSearchEventsConsumer(
   onEvent: (event: RouteSearchEventMessage) => Promise<void>
 ): Promise<void> {

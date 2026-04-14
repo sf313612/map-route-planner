@@ -45,7 +45,7 @@ async function processJob(payload: TranscriptionRequestPayload): Promise<void> {
   await new Promise<void>((resolve) => setTimeout(resolve, STUB_DELAY_MS));
   await TranscriptionJob.findByIdAndUpdate(payload.jobId, {
     status: "DONE",
-    resultText: `[stub transcription] ${job.sourceText}`,
+    resultStatus: "READY",
   });
 }
 

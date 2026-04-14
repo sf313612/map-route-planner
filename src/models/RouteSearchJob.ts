@@ -1,3 +1,4 @@
+//
 import mongoose from "mongoose";
 
 export type RouteSearchJobStatus = "CREATED" | "PROCESSING" | "DONE" | "ERROR";
@@ -22,6 +23,7 @@ const routeSearchJobSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// one same route possible
 routeSearchJobSchema.index({ userId: 1, idempotencyKey: 1 }, { unique: true });
 
 export default mongoose.model("RouteSearchJob", routeSearchJobSchema);

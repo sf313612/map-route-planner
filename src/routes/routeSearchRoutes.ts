@@ -1,3 +1,4 @@
+//
 import express, { Request, Response } from "express";
 import { requireAuth } from "../middleware/auth";
 import { getParamId } from "../utils/params";
@@ -7,6 +8,7 @@ import { createOrGetRouteSearchJob } from "../services/routeSearchJobService";
 const router = express.Router();
 router.use(requireAuth);
 
+// create job
 router.post("/jobs", async (req: Request, res: Response) => {
   const fromCityId = typeof req.body?.fromCityId === "string" ? req.body.fromCityId.trim() : "";
   const toCityId = typeof req.body?.toCityId === "string" ? req.body.toCityId.trim() : "";

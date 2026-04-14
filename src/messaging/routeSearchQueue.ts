@@ -1,3 +1,4 @@
+//
 import type { Channel } from "amqplib";
 
 export const ROUTE_SEARCH_REQUESTED = "route_search.requested";
