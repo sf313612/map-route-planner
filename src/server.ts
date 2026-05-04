@@ -3,7 +3,7 @@ import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import cors from "cors";
-import type { Server } from "http";
+import { createServer, type Server } from "http";
 
 import authRouter from "./routes/authRoutes";
 import usersRouter from "./routes/users";
@@ -21,6 +21,7 @@ import {
   startRouteSearchEventsConsumer,
 } from "./messaging/routeSearchMessaging";
 import { handleRouteSearchEvent } from "./services/routeSearchEventHandler";
+import { initWebSocketServer } from "./ws/server";
 
 dotenv.config();
 
@@ -53,7 +54,10 @@ async function bootstrap(): Promise<void> {
   await startRouteSearchEventsConsumer(handleRouteSearchEvent);
   console.log("Route-search messaging connected");
 
-  server = app.listen(PORT, () => {
+  server = createServer(app);
+  initWebSocketServer(server);
+
+  server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
 }
