@@ -10,6 +10,7 @@ import type {
   RouteSearchFailedPayload,
   RouteSearchProgressPayload,
 } from "../messaging/routeSearchMessaging";
+import { publishToJob } from "../ws/connectionManager";
 
 export async function handleRouteSearchEvent(event: {
   type: string;
@@ -17,9 +18,22 @@ export async function handleRouteSearchEvent(event: {
 }): Promise<void> {
   if (event.type === ROUTE_SEARCH_PROGRESS) {
     const payload = event.payload as RouteSearchProgressPayload;
+    const progress = Math.max(0, Math.min(99, Number(payload.progress) || 0));
     await RouteSearchJob.findByIdAndUpdate(payload.jobId, {
       status: "PROCESSING",
-      progress: Math.max(0, Math.min(99, Number(payload.progress) || 0)),
+      progress,
+    });
+    publishToJob(payload.jobId, {
+      type: "progress",
+      jobId: payload.jobId,
+      progress,
+      stage: payload.stage,
+    });
+    publishToJob(payload.jobId, {
+      type: "status_update",
+      jobId: payload.jobId,
+      status: "PROCESSING",
+      progress,
     });
     return;
   }
@@ -32,14 +46,39 @@ export async function handleRouteSearchEvent(event: {
       result: payload.result,
       errorMessage: null,
     });
+    publishToJob(payload.jobId, {
+      type: "status_update",
+      jobId: payload.jobId,
+      status: "DONE",
+      progress: 100,
+    });
+    publishToJob(payload.jobId, {
+      type: "completion",
+      jobId: payload.jobId,
+      status: "DONE",
+      result: payload.result,
+    });
     return;
   }
 
   if (event.type === ROUTE_SEARCH_FAILED) {
     const payload = event.payload as RouteSearchFailedPayload;
+    const message = payload.message || "Background worker failed";
     await RouteSearchJob.findByIdAndUpdate(payload.jobId, {
       status: "ERROR",
-      errorMessage: payload.message || "Background worker failed",
+      errorMessage: message,
+    });
+    publishToJob(payload.jobId, {
+      type: "status_update",
+      jobId: payload.jobId,
+      status: "ERROR",
+      message,
+    });
+    publishToJob(payload.jobId, {
+      type: "completion",
+      jobId: payload.jobId,
+      status: "ERROR",
+      message,
     });
   }
 }

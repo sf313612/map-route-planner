@@ -1,18 +1,7 @@
-/// <reference path="./express.d.ts" />
-import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
-import cors from "cors";
 import { createServer, type Server } from "http";
-
-import authRouter from "./routes/authRoutes";
-import usersRouter from "./routes/users";
-import favoriteRouter from "./routes/favoriteRoute";
-import savedRouter from "./routes/savedRoute";
-import citiesRouter from "./routes/citiesRoutes";
-import roadsRouter from "./routes/roadsRoutes";
-import transcriptionRouter from "./routes/transcriptionRoutes";
-import routeSearchRouter from "./routes/routeSearchRoutes";
+import { createApp } from "./app";
 import { closeNeo4jDriver } from "./neo4jClient";
 import { closeRabbitMQ, connectRabbitMQ } from "./messaging/rabbitmq";
 import {
@@ -25,22 +14,7 @@ import { initWebSocketServer } from "./ws/server";
 
 dotenv.config();
 
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-app.get("/", (req: Request, res: Response) => {
-  res.send("API is running");
-});
-
-app.use("/api/auth", authRouter);
-app.use("/api/users", usersRouter);
-app.use("/api/favorites", favoriteRouter);
-app.use("/api/saved", savedRouter);
-app.use("/api/cities", citiesRouter);
-app.use("/api/roads", roadsRouter);
-app.use("/api/transcription", transcriptionRouter);
-app.use("/api/route-search", routeSearchRouter);
+const app = createApp();
 
 const PORT = process.env.PORT || 5000;
 let server: Server;

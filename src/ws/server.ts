@@ -2,6 +2,7 @@ import { Server } from "http";
 import { WebSocketServer } from "ws";
 import type { ClientMessage } from "./types";
 import { getUserFromRequest } from "./auth";
+import RouteSearchJob from "../models/RouteSearchJob";
 import {
   registerConnection,
   removeConnection,
@@ -25,7 +26,7 @@ export function initWebSocketServer(server: Server): void {
     registerConnection(userId, socket);
     socket.send(JSON.stringify({ type: "auth_ok" }));
 
-    socket.on("message", (data) => {
+    socket.on("message", async (data) => {
       try {
         const msg = JSON.parse(data.toString()) as ClientMessage;
 
@@ -42,10 +43,26 @@ export function initWebSocketServer(server: Server): void {
             return;
           }
 
+          const job = await RouteSearchJob.findOne({ _id: msg.jobId, userId });
+          if (!job) {
+            socket.send(JSON.stringify({
+              type: "error",
+              message: "Job not found",
+            }));
+            return;
+          }
+
           subscribeToJob(msg.jobId, socket);
           socket.send(JSON.stringify({
             type: "subscribed",
             jobId: msg.jobId,
+          }));
+          socket.send(JSON.stringify({
+            type: "status_update",
+            jobId: msg.jobId,
+            status: job.status,
+            progress: job.progress,
+            message: job.errorMessage,
           }));
         }
       } catch {
