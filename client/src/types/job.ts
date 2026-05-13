@@ -6,4 +6,6 @@ export type Job = {
   toCityId: string;
   status: JobStatus;
   progress: number;
+  errorMessage?: string;
+  result?: unknown;
 };

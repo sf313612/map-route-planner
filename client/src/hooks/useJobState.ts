@@ -52,8 +52,17 @@ export function useJobState() {
     setJobs((currentJobs) => [newJob, ...currentJobs]);
   };
 
+  const updateJob = (jobId: string, patch: Partial<Job>) => {
+    setJobs((currentJobs) =>
+      currentJobs.map((job) =>
+        job.jobId === jobId ? { ...job, ...patch } : job
+      )
+    );
+  };
+
   return {
     jobs,
     addJob,
+    updateJob,
   };
 }
