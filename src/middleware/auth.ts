@@ -6,6 +6,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "change-me-in-production";
 
 export interface JwtPayload {
   userId: string;
+  isGuest?: boolean;
 }
 
 export function verifyJwtToken(token: string): JwtPayload {
@@ -29,6 +30,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   try {
     const decoded = verifyJwtToken(token);
     req.userId = decoded.userId;
+    req.isGuest = Boolean(decoded.isGuest);
     next();
   } catch {
     res.status(401).json({ error: "Invalid or expired token" });

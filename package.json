@@ -11,6 +11,7 @@
     "test:transcription": "powershell -ExecutionPolicy Bypass -File .\\scripts\\transcription-full-test.ps1",
     "test:route-search": "powershell -ExecutionPolicy Bypass -File .\\scripts\\route-search-full-test.ps1",
     "test:websocket": "powershell -ExecutionPolicy Bypass -File .\\scripts\\websocket-route-search-full-test.ps1",
+    "db:reset-routes": "node scripts/reset-realistic-route-graph.cjs",
     "test": "jest --runInBand",
     "test:watch": "jest --watch",
     "test:coverage": "jest --runInBand --coverage --coverageReporters=text --coverageReporters=text-summary --coverageReporters=json-summary --coverageReporters=lcov",

@@ -11,10 +11,17 @@ const statusClassMap: Record<JobStatus, string> = {
   ERROR: "status-badge--error",
 };
 
+const statusLabelMap: Record<JobStatus, string> = {
+  CREATED: "Queued",
+  PROCESSING: "Searching",
+  DONE: "Ready",
+  ERROR: "Needs attention",
+};
+
 export function StatusBadge({ status }: StatusBadgeProps) {
   return (
     <span className={`status-badge ${statusClassMap[status]}`}>
-      {status}
+      {statusLabelMap[status]}
     </span>
   );
 }
